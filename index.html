@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"
+    integrity="sha512-emSwuKiMyYedRwflbZB2ghzX8Cw8fmNVgZ6yQNNXXagFzFOaQmbvQ1vmDkddHjm5AITcBIZfC7k4ShQSjgPAmQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <h1 class="row">Login</h1>
+    <main>
+      <div class="row">
+        <label for="username">Username</label>
+        <input type="text" name="username" id="username" />
+      </div>
+      <div class="row">
+        <label for="password">Password</label>
+        <input type="text" name="password" id="password" />
+      </div>
+      <div>
+        <button onclick="login()">Login</button>
+        <button onclick="getDashboard()">GetDashboard</button>
+      </div>
+    </main>
+  </div>
+  <script>
+    function login() {
+      const data = {
+        username: document.getElementById("username").value,
+        password: document.getElementById("password").value,
+      };
+      axios.post("/api/login", data).then((res) => {
+        console.log(res);
+        document.getElementById("username").value = "";
+        document.getElementById("password").value = "";
+
+        if (res && res.data && res.data.success) {
+          const token = res.data.token;
+          localStorage.setItem("jwt", token);
+          getDashboard();
+        }
+      
+      });
+    }
+    function getDashboard() {
+      const token = localStorage.getItem("jwt");
+      axios
+        .get("/api/dashboard", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        .then((res) => {
+          if (res && res.data && res.data.success) {
+            document.querySelector("h1.row").innerHTML = "Dashboard";
+            document.querySelector("main").innerHTML = res.data.myContent;
+            const settingsButton = document.createElement("button");
+            settingsButton.textContent = "Settings";
+            settingsButton.onclick = settings;
+            const buttonContainer = document.createElement("div");
+            buttonContainer.className = "settings";
+            buttonContainer.appendChild(settingsButton);
+            document.querySelector("main").appendChild(buttonContainer);
+            localStorage.setItem("currentPage", "dashboard");
+            history.pushState(null, null, "http://localhost:3000/dashboard");
+            
+            setTimeout(() => {
+            localStorage.removeItem("jwt");
+            localStorage.removeItem('currentPage')
+            window.location.href = "/";
+          }, 180000);
+          }
+        });
+    }
+    function settings() {
+      const token = localStorage.getItem("jwt");
+
+      axios
+        .get("/api/settings", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        .then((res) => {
+          document.querySelector("h1.row").innerHTML = "Settings";
+          document.querySelector("main").innerHTML = res.data.myContent;
+          localStorage.setItem("currentPage", "settings");
+          history.pushState(null, null, "http://localhost:3000/settings");
+        
+          setTimeout(() => {
+            localStorage.removeItem("jwt");
+            localStorage.removeItem('currentPage')
+            window.location.href = "/";
+          }, 180000);
+         
+        });
+       
+    }
+    function onLoad() {
+      const token = localStorage.getItem('jwt');
+      const currentPage = localStorage.getItem("currentPage");
+      
+      if (token) {
+        if (currentPage === "dashboard") {
+          getDashboard();
+        } else if (currentPage === "settings") {
+          settings();
+        }
+      }
+    }
+    window.onload = onLoad;
+  </script>
+</body>
+
+</html>
